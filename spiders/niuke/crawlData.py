@@ -3,67 +3,33 @@ import json
 import time
 import re
 from bs4 import BeautifulSoup
-from scipy.stats import kstwo
-
-
-# def _parse_newcoder_page(data, skip_words, start_date):
-#     """Parse the main page data and filter posts based on keywords and start date."""
-#     assert data['success'] == True
-#     pattern = re.compile("|".join(skip_words)) if skip_words else None
-#     res = []
-#     for x in data['data']['records']:
-#         x = x['data']
-#         dic = {"user": x['userBrief']['nickname']}
-        
-#         if 'contentData' in x:
-#             x = x['contentData'] 
-#             dic['url'] = 'https://www.nowcoder.com/discuss/' + str(x['id'])
-#         elif 'momentData' in x:
-#             x = x['momentData']
-#             dic['url'] = 'https://www.nowcoder.com/feed/main/detail/' + str(x.get('uuid', ''))
-        
-#         dic['title'] = x.get('title', 'No Title')
-#         dic['content'] = x.get('content', 'No Content')
-#         dic['id'] = x.get('id', None)
-
-#         # Keyword filtering
-#         text = str(dic['title']) + str(dic['content'])
-#         if skip_words and pattern and pattern.search(text):
-#             continue
-
-#         createdTime = x.get('createdAt') or x.get('createTime', 0)
-#         dic['createTime'] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(createdTime // 1000))
-#         dic['editTime'] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(x.get('editTime', createdTime) // 1000))
-        
-#         # Date filtering
-#         if dic['editTime'] < start_date:
-#             continue  
-        
-#         res.append(dic)
-        
-#     return res
+import concurrent.futures
 
 def parse_post_page(url):
     """Fetch post page and extract post details and comments."""
     headers = {
         "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
     }
-    response = requests.get(url, headers=headers)
-    soup = BeautifulSoup(response.text, 'html.parser')
-    
-    # Extract main post content
-    post_text = soup.find("div", class_="feed-content-text")
-    post_text = post_text.get_text(strip=True) if post_text else "No post content available"
-    
-    # Extract comments
-    comments = []
-    comment_divs = soup.find_all("div", class_="comment-content-box")
-    for comment_div in comment_divs:
-        comment_text = comment_div.find("span", class_="vue-ellipsis-js-content-text")
-        comment_text = comment_text.get_text(strip=True) if comment_text else "No comment text"
-        comments.append(comment_text)
-    
-    return post_text, comments
+    try:
+        response = requests.get(url, headers=headers, timeout=5)
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # Extract main post content
+        post_text = soup.find("div", class_="feed-content-text")
+        post_text = post_text.get_text(strip=True) if post_text else "No post content available"
+        
+        # Extract comments
+        comments = []
+        comment_divs = soup.find_all("div", class_="comment-content-box")
+        for comment_div in comment_divs:
+            comment_text = comment_div.find("span", class_="vue-ellipsis-js-content-text")
+            comment_text = comment_text.get_text(strip=True) if comment_text else "No comment text"
+            comments.append(comment_text)
+        
+        return post_text, comments
+    except Exception as e:
+        print(f"Error parsing post page {url}: {e}")
+        return "No post content available", []
 
 def get_main_posts(page_number=1, keyword="秋招", skip_words=[], start_date='2023'):
     """Scrape main page posts and fetch each post's details including comments."""
@@ -79,11 +45,16 @@ def get_main_posts(page_number=1, keyword="秋招", skip_words=[], start_date='2
         "tag": [], 
         "order": "create"
     }
-    response = requests.post(url, headers=headers, data=json.dumps(data))
-    main_posts = response.json()['data']['records']
+    try:
+        response = requests.post(url, headers=headers, data=json.dumps(data), timeout=5)
+        main_posts = response.json()['data']['records']
+    except Exception as e:
+        print(f"Error fetching main posts on page {page_number}: {e}")
+        return []
 
     results = []
-    for post in main_posts:
+    
+    def process_post(post):
         post_data = post['data']
         post_info = {
             "title": post_data.get('title', 'No title'),
@@ -98,17 +69,24 @@ def get_main_posts(page_number=1, keyword="秋招", skip_words=[], start_date='2
         else:
             # Skip this post if both 'id' and 'uuid' are missing
             print("Skipping post due to missing 'id' or 'uuid'")
-            continue
+            return None
         
         # Extract detailed post content and comments
         post_text, comments = parse_post_page(post_info["url"])
         post_info["post_text"] = post_text
         post_info["comments"] = comments
         
-        results.append(post_info)
-        print(f" keyword [{keyword}] post_text {post_text},...")
+        print(f"Keyword [{keyword}] - Fetched post: {post_info['title']}")
         time.sleep(0.1)  # Respectful scraping delay
+        return post_info
 
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+        futures = [executor.submit(process_post, post) for post in main_posts]
+        for future in concurrent.futures.as_completed(futures):
+            post_info = future.result()
+            if post_info:
+                results.append(post_info)
+    
     return results
 
 def save_posts_to_file(posts, filename="posts_with_comments.txt"):
@@ -126,24 +104,28 @@ def save_posts_to_file(posts, filename="posts_with_comments.txt"):
 
 def get_all_posts(num_pages, keyword):
     all_posts = []
-    for page_number in range(1, num_pages + 1):
+    page_numbers = range(1, num_pages + 1)
+    
+    def fetch_page(page_number):
         print(f"Scraping page {page_number}, keyword [{keyword}]...")
         posts = get_main_posts(page_number=page_number, keyword=keyword)
-        all_posts.extend(posts)
-        time.sleep(1)# Delay between page requests to avoid rate limiting
+        return posts
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+        futures = [executor.submit(fetch_page, page_number) for page_number in page_numbers]
+        for future in concurrent.futures.as_completed(futures):
+            posts = future.result()
+            all_posts.extend(posts)
+    
     return all_posts
 
 if __name__ == "__main__":
     num_pages = 10  # Set the number of pages you want to scrape
-    keyword = "秋招"  # Set the keyword you want to search for
-    all_posts = get_all_posts(num_pages, keyword)
-    # Save all scraped data to a file
-    save_posts_to_file(all_posts, keyword + ".txt")
-    keyword = "校招"
-    all_posts = get_all_posts(num_pages, keyword)
-    save_posts_to_file(all_posts, keyword + ".txt")
-    keyword = "面经"
-    all_posts = get_all_posts(num_pages, keyword)
-    save_posts_to_file(all_posts, keyword + ".txt")
 
-    print("Scraping completed. Data saved to posts_with_comments.txt.")
+    keywords = ["秋招", "校招", "面经"]  # List of keywords to search for
+
+    for keyword in keywords:
+        all_posts = get_all_posts(num_pages, keyword)
+        # Save all scraped data to a file
+        save_posts_to_file(all_posts, keyword + ".txt")
+        print(f"Scraping completed for keyword '{keyword}'. Data saved to {keyword}.txt.")
