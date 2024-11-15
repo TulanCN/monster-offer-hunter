@@ -41,3 +41,15 @@ create table spider_db.job_info
     create_time      varchar(50)  null comment '抓取时间'
 );
 ```
+
+## How to run AnythingLLM?
+
+1、下载AnythingLLM Desktop，下载链接https://docs.anythingllm.com/installation-desktop/overview
+
+2、创建阿里云账号，登录阿里云百炼平台，开通百炼的模型服务，生成API Key。参考文档：https://help.aliyun.com/zh/model-studio/getting-started/first-api-call-to-qwen?spm=a2c4g.11186623.help-menu-2400256.d_0_1_0.50d72bdbbd7q4v
+
+4、打开AnythingLLM Desktop，选择Generic OpenAI。Base URL填https://dashscope.aliyuncs.com/compatible-mode/v1。
+
+![image-20241115134044176](README/image-20241115134044176.png)
+
+5、创建workspace，填入promot，上传训练用的数据集。
