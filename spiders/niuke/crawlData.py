@@ -3,6 +3,8 @@ import json
 import time
 import re
 from bs4 import BeautifulSoup
+from scipy.stats import kstwo
+
 
 # def _parse_newcoder_page(data, skip_words, start_date):
 #     """Parse the main page data and filter posts based on keywords and start date."""
@@ -63,7 +65,7 @@ def parse_post_page(url):
     
     return post_text, comments
 
-def get_main_posts(page_number=1, keyword="校招", skip_words=[], start_date='2023'):
+def get_main_posts(page_number=1, keyword="秋招", skip_words=[], start_date='2023'):
     """Scrape main page posts and fetch each post's details including comments."""
     url = 'https://gw-c.nowcoder.com/api/sparta/pc/search'
     headers = {
@@ -104,7 +106,8 @@ def get_main_posts(page_number=1, keyword="校招", skip_words=[], start_date='2
         post_info["comments"] = comments
         
         results.append(post_info)
-        time.sleep(1)  # Respectful scraping delay
+        print(f" keyword [{keyword}] post_text {post_text},...")
+        time.sleep(0.1)  # Respectful scraping delay
 
     return results
 
@@ -121,16 +124,26 @@ def save_posts_to_file(posts, filename="posts_with_comments.txt"):
                 f.write(f" - {comment}\n")
             f.write("\n" + "="*50 + "\n\n")
 
-if __name__ == "__main__":
+def get_all_posts(num_pages, keyword):
     all_posts = []
-    num_pages = 5  # Set the number of pages you want to scrape
-
     for page_number in range(1, num_pages + 1):
-        print(f"Scraping page {page_number}...")
-        posts = get_main_posts(page_number=page_number)
+        print(f"Scraping page {page_number}, keyword [{keyword}]...")
+        posts = get_main_posts(page_number=page_number, keyword=keyword)
         all_posts.extend(posts)
-        time.sleep(2)  # Delay between page requests to avoid rate limiting
-    
+        time.sleep(1)# Delay between page requests to avoid rate limiting
+    return all_posts
+
+if __name__ == "__main__":
+    num_pages = 10  # Set the number of pages you want to scrape
+    keyword = "秋招"  # Set the keyword you want to search for
+    all_posts = get_all_posts(num_pages, keyword)
     # Save all scraped data to a file
-    save_posts_to_file(all_posts)
+    save_posts_to_file(all_posts, keyword + ".txt")
+    keyword = "校招"
+    all_posts = get_all_posts(num_pages, keyword)
+    save_posts_to_file(all_posts, keyword + ".txt")
+    keyword = "面经"
+    all_posts = get_all_posts(num_pages, keyword)
+    save_posts_to_file(all_posts, keyword + ".txt")
+
     print("Scraping completed. Data saved to posts_with_comments.txt.")
