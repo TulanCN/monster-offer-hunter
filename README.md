@@ -41,6 +41,9 @@ create table spider_db.job_info
     create_time      varchar(50)  null comment '抓取时间'
 );
 ```
+## Clean the data
+
+After crawling the data, it is necessary to extract the relevant parts from it.Run DataClean.py. It can extract useful content and remove the links and labels from the data.
 
 ## How to run AnythingLLM?
 
