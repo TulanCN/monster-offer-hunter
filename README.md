@@ -43,7 +43,7 @@ create table spider_db.job_info
 ```
 ## Clean the data
 
-After crawling the data, it is necessary to extract the relevant parts from it.Run 'DataClean.py'. It can extract useful content and remove the links and labels from the data.
+After crawling the data, it is necessary to extract the relevant parts from it.Run `DataClean.py`. It can extract useful content and remove the links and labels from the data.
 
 ## How to run AnythingLLM?
 
