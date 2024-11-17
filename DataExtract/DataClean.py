@@ -1,10 +1,13 @@
 import re
+import time
 
-def process_files(input_files, output_file_path):
+def process_files(input_files, output_prefix):
     all_results = []
     for file_path in input_files:
         result = []
-        with open(file_path, 'r', encoding='utf-8') as file:
+        now = time.strftime("%Y-%m-%d", time.localtime())
+        file_name = f"{file_path}_{now}.txt"
+        with open(file_name, 'r', encoding='utf-8') as file:
             lines = file.readlines()
             i = 0
             while i < len(lines):
@@ -17,12 +20,12 @@ def process_files(input_files, output_file_path):
                         result.append(full_post_text)
                 i += 1
             all_results.extend(result)
-
-    with open(output_file_path, 'w', encoding='utf-8') as output_file:
-        for text in all_results:
-            output_file.write(text + '\n')
+        output_file_name = output_prefix + file_path + '.txt'
+        with open(output_file_name, 'w', encoding='utf-8') as output_file:
+            for text in all_results:
+                output_file.write(text + '\n')
 
 if __name__ == "__main__":
-    file_path = ['秋招.txt']   #input filename
-    output_file_path = 'document.txt'   #output filename
-    process_files(file_path, output_file_path)
+    file_path = ["秋招", "校招", "面经", "算法工程师","Java后端开发","前端开发","硬件开发","软件开发"]   #input filename
+    output_prefix = 'cleaned_'   #output filename
+    process_files(file_path, output_prefix)

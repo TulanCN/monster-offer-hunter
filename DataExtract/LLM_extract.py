@@ -10,7 +10,7 @@ preprompt = """任务：- 你需要进行文本信息提取和分类的任务。
 回答限制：
 - 回答请尽量精简。如果没有某个角度的信息，则该角度不输出。回答中的主语使用我。以下是文本："""
 
-def call_with_messages(prompt):
+def call_with_messages(api_key, prompt):
 
     messages = [
     {'role': 'system', 'content': 'You are a helpful assistant.'},
@@ -18,8 +18,8 @@ def call_with_messages(prompt):
     ]
 
     response = Generation.call(
-        api_key="sk-3ed28eef9ad043d8b48b522846c27b93",
-        model="qwen-plus",
+        api_key=api_key,
+        model="qwen-turbo",
         messages=messages,
         result_format="message"
     )
@@ -39,14 +39,15 @@ def read_text_from_file(file_path):
             lines.append(line.strip())
     return lines
 
-def save_responses_to_file(input_texts, output_file_path):
+def save_responses_to_file(api_key, input_texts, output_file_path):
     with open(output_file_path, 'w', encoding='utf-8') as f:
         for text in input_texts:
-            response = call_with_messages(text)
+            response = call_with_messages(api_key, text)
             f.write(response + '\n')
 
 if __name__ == "__main__":
-    file_path = "document.txt"   #input filename
-    output_file_path = "output.txt"  #output filename
+    api_key = input("Enter the API key: ")
+    file_path = "../Data/cleaned/cleaned_校招.txt"   #input filename
+    output_file_path = "extracted_校招.txt"  #output filename
     input_texts = read_text_from_file(file_path)
-    save_responses_to_file(input_texts, output_file_path)
+    save_responses_to_file(api_key, input_texts, output_file_path)

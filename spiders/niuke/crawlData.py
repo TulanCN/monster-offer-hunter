@@ -2,6 +2,8 @@ import requests
 import json
 import time
 import re
+
+from anaconda_navigator.utils.url_utils import file_name
 from bs4 import BeautifulSoup
 import concurrent.futures
 
@@ -10,26 +12,30 @@ def parse_post_page(url):
     headers = {
         "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
     }
-    try:
-        response = requests.get(url, headers=headers, timeout=5)
-        soup = BeautifulSoup(response.text, 'html.parser')
-        
-        # Extract main post content
-        post_text = soup.find("div", class_="feed-content-text")
-        post_text = post_text.get_text(strip=True) if post_text else "No post content available"
-        
-        # Extract comments
-        comments = []
-        comment_divs = soup.find_all("div", class_="comment-content-box")
-        for comment_div in comment_divs:
-            comment_text = comment_div.find("span", class_="vue-ellipsis-js-content-text")
-            comment_text = comment_text.get_text(strip=True) if comment_text else "No comment text"
-            comments.append(comment_text)
-        
-        return post_text, comments
-    except Exception as e:
-        print(f"Error parsing post page {url}: {e}")
-        return "No post content available", []
+    retry_time = 0
+    while retry_time < 3:
+        try:
+            response = requests.get(url, headers=headers, timeout=5)
+            soup = BeautifulSoup(response.text, 'html.parser')
+
+            # Extract main post content
+            post_text = soup.find("div", class_="feed-content-text")
+            post_text = post_text.get_text(strip=True) if post_text else "No post content available"
+
+            # Extract comments
+            comments = []
+            comment_divs = soup.find_all("div", class_="comment-content-box")
+            for comment_div in comment_divs:
+                comment_text = comment_div.find("span", class_="vue-ellipsis-js-content-text")
+                comment_text = comment_text.get_text(strip=True) if comment_text else "No comment text"
+                comments.append(comment_text)
+
+            return post_text, comments
+        except Exception as e:
+            print(f"Error parsing post page {url}: {e}")
+            retry_time += 1
+            time.sleep(1)
+
 
 def get_main_posts(page_number=1, keyword="秋招", skip_words=[], start_date='2023'):
     """Scrape main page posts and fetch each post's details including comments."""
@@ -75,9 +81,8 @@ def get_main_posts(page_number=1, keyword="秋招", skip_words=[], start_date='2
         post_text, comments = parse_post_page(post_info["url"])
         post_info["post_text"] = post_text
         post_info["comments"] = comments
-        
-        print(f"Keyword [{keyword}] - Fetched post: {post_info['title']}")
-        time.sleep(0.1)  # Respectful scraping delay
+
+        time.sleep(0.2)  # Respectful scraping delay
         return post_info
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
@@ -109,6 +114,7 @@ def get_all_posts(num_pages, keyword):
     def fetch_page(page_number):
         print(f"Scraping page {page_number}, keyword [{keyword}]...")
         posts = get_main_posts(page_number=page_number, keyword=keyword)
+        print(f"Found {len(posts)} posts on page {page_number}")
         return posts
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
@@ -120,12 +126,13 @@ def get_all_posts(num_pages, keyword):
     return all_posts
 
 if __name__ == "__main__":
-    num_pages = 10  # Set the number of pages you want to scrape
-
-    keywords = ["秋招", "校招", "面经"]  # List of keywords to search for
-
+    num_pages = 27  # Set the number of pages you want to scrape
+    # 获取当前时间
+    now = time.strftime("%Y-%m-%d", time.localtime())
+    keywords = ["秋招", "校招", "面经", "算法工程师","Java后端开发","前端开发","硬件开发","软件开发"]  # List of keywords to search for
     for keyword in keywords:
         all_posts = get_all_posts(num_pages, keyword)
         # Save all scraped data to a file
-        save_posts_to_file(all_posts, keyword + ".txt")
-        print(f"Scraping completed for keyword '{keyword}'. Data saved to {keyword}.txt.")
+        file_name = f"{keyword}_{now}.txt"
+        save_posts_to_file(all_posts, file_name)
+        print(f"Scraping completed for keyword '{keyword}'. Data saved to {file_name}.")
