@@ -1,7 +1,6 @@
 import re
 import time
 import emoji
-import jieba
 
 def process_files(input_files, output_prefix):
     all_results = []
@@ -41,29 +40,6 @@ def clean_text(text):
 
 def remove_emojis(text):
     return emoji.demojize(text).replace(':', '')
-
-def change_company_name(text):
-    # 加载自定义词典
-    jieba.load_userdict("user_dict.txt")
-
-    # 示例文本
-    text = "公司:字节跳动岗位:算法工程师薪资:30k✖️15Base地:北京"
-
-    # 分词
-    words = jieba.cut(text)
-
-    # 将分词结果转换为列表
-    words_list = list(words)
-
-    # 定义需要替换的词语及其替换内容
-    replace_dict = {
-        "字节跳动": "某科技公司",
-        "算法工程师": "工程师"
-    }
-
-    # 替换词语
-    replaced_text = [replace_dict.get(word, word) for word in words_list]
-
 
 if __name__ == "__main__":
     file_path = ["秋招", "校招", "面经", "算法工程师","Java后端开发","前端开发","硬件开发","软件开发"]   #input filename
