@@ -8,7 +8,10 @@ import concurrent.futures
 def parse_post_page(url):
     """Fetch post page and extract post details and comments."""
     headers = {
-        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) "
+                      "Chrome/130.0.0.0 Safari/537.36",
+        "Connection": "keep-alive",
+        "keep-alive": "timeout=5, max=1000"
     }
     retry_time = 0
     while retry_time < 3:
@@ -32,7 +35,7 @@ def parse_post_page(url):
         except Exception as e:
             print(f"Error parsing post page {url}: {e}")
             retry_time += 1
-            time.sleep(1)
+            time.sleep(0.5)
 
 
 def get_main_posts(page_number=1, keyword="秋招", skip_words=[], start_date='2023'):
@@ -40,7 +43,9 @@ def get_main_posts(page_number=1, keyword="秋招", skip_words=[], start_date='2
     url = 'https://gw-c.nowcoder.com/api/sparta/pc/search'
     headers = {
         "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36",
-        "content-type": "application/json"
+        "content-type": "application/json",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5, max=1000"
     }
     data = {
         "type": "all", 
@@ -80,7 +85,7 @@ def get_main_posts(page_number=1, keyword="秋招", skip_words=[], start_date='2
         post_info["post_text"] = post_text
         post_info["comments"] = comments
 
-        time.sleep(0.2)  # Respectful scraping delay
+        time.sleep(0.01)  # Respectful scraping delay
         return post_info
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
@@ -115,7 +120,7 @@ def get_all_posts(num_pages, keyword):
         print(f"Found {len(posts)} posts on page {page_number}")
         return posts
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
         futures = [executor.submit(fetch_page, page_number) for page_number in page_numbers]
         for future in concurrent.futures.as_completed(futures):
             posts = future.result()
@@ -124,7 +129,7 @@ def get_all_posts(num_pages, keyword):
     return all_posts
 
 if __name__ == "__main__":
-    num_pages = 27  # Set the number of pages you want to scrape
+    num_pages = 5  # Set the number of pages you want to scrape
     # 获取当前时间
     now = time.strftime("%Y-%m-%d", time.localtime())
     keywords = ["秋招", "校招", "面经", "算法工程师","Java后端开发","前端开发","硬件开发","软件开发"]  # List of keywords to search for
