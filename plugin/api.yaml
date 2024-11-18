@@ -1,0 +1,56 @@
+openapi: 3.0.0
+info:
+  title: 牛客网数据查询API
+  description: 用于查询牛客网上关于特定公司和岗位的薪资及面试经验信息。
+  version: 1.0.0
+servers:
+  - url: http://8.138.28.154:8000
+    description: 生产环境服务器
+paths:
+  /niuke:
+    post:
+      summary: 查询特定公司和岗位的薪资或面试经验
+      operationId: getCompanyJobInfo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - company
+                - jobName
+                - type
+                - numPages
+              properties:
+                company:
+                  type: string
+                  description: 查询的公司名称。尽可能使用公司简称，比如：字节跳动->字节、理想汽车->理想；如果用户没有指定特定公司，传空字符串。
+                jobName:
+                  type: string
+                  description: 查询的岗位名称。如果用户没有指定岗位，传空字符串。
+                type:
+                  type: string
+                  enum: ["薪资", "面试经验"]
+                  description: 查询的信息类型。信息类型分为两种：【薪资、面试经验】，根据用户的问题选择。
+                numPages:
+                  type: integer
+                  minimum: 1
+                  maximum: 10
+                  default: 5
+                  description: 查询的页面数量，范围1-10，一般使用5。
+      responses:
+        '200':
+          description: 成功响应
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: string
+                    description: 查询结果，字符串类型。
+        '400':
+          description: 请求参数错误
+        '500':
+          description: 内部服务器错误

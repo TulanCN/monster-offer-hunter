@@ -3,7 +3,7 @@ import time
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from dbutils import DBUtils
+from DbUtils import DBUtils
 
 browser = webdriver.Chrome()
 city_map = {

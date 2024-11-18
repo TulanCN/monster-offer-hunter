@@ -1,9 +1,7 @@
 import requests
 import json
 import time
-import re
 
-from anaconda_navigator.utils.url_utils import file_name
 from bs4 import BeautifulSoup
 import concurrent.futures
 
@@ -85,7 +83,7 @@ def get_main_posts(page_number=1, keyword="秋招", skip_words=[], start_date='2
         time.sleep(0.2)  # Respectful scraping delay
         return post_info
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
         futures = [executor.submit(process_post, post) for post in main_posts]
         for future in concurrent.futures.as_completed(futures):
             post_info = future.result()
